@@ -1,0 +1,369 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0, user-scalable=no"/>
+<title>Connect 4</title>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+</head>
+
+<div id="maxDepth">0</div>
+<body>
+
+</body>
+    <br>
+
+<script>
+init();
+
+function init() {
+    for (var i = 0; i <= 6; i++) {
+        for (var j = 0; j <= 7; j++) {
+            document.body.innerHTML += "<div id='"+i+"-"+j+"'></div>";
+        }
+        document.body.innerHTML += "<br>"; 
+    }
+    document.body.innerHTML += "<hr>";
+    for (var i = 0; i <= 7; i++) {
+        document.body.innerHTML += "<input type='button' id='"+i+"' value='-' onclick='makemove("+i+")'>";
+    }
+}
+
+var a = createArr();
+var player = 0;
+var maxdepth = 0;
+var nummoves = 0;
+function makemove(col) {
+    for (var i = a.length - 1; i > 0; i--) {
+        if (a[i][col] == 3) {
+            a[i][col] = player % 2;
+            player++;
+            break;
+        }
+    }
+
+    //console.log(grid);
+    printGrid();
+
+    if (won(0) || won(1) || gameover(a)) {
+        endgame();
+        return;
+    }
+    //console.log(a);
+    
+    
+    // Computer turn
+    var result = move(a);
+    
+    for (var i = a.length - 1; i > 0; i--) {
+        if (a[i][result] == 3) {
+            a[i][result] = player % 2;
+            player++;
+            break;
+        }
+    }
+
+    printGrid();
+
+    if (won(0) || won(1) || gameover(a)) {
+        endgame();
+        return;
+    }
+    
+
+}
+
+function endgame() {
+    if (won(0)) {
+        alert("Player 1 Won!");
+    } else if (won(1)) {
+        alert("The Computer Won!");
+    } else {
+        alert("The Game Ended In A Draw!");
+    }
+}
+
+function move(game) {
+    var prev = [];
+    prev.push(game);
+    
+    var result = minmax(game, 0, "computer", prev);
+    //console.log(result);
+    var val = result[1];
+    
+    //console.log("num: "+nummoves);
+    return val;
+}
+
+function minmax(game, depth, player, prev) {
+    var moves;
+    if (player == "computer") {
+        moves = get_available_moves(game, prev, 1);
+    } else {
+        moves = get_available_moves(game, prev, 0);
+    }
+    
+    
+    if (depth > maxdepth) {
+        maxdepth = depth;
+        console.log("Max: "+depth);
+    }
+    
+    nummoves++;
+    
+    var currScore;
+    var bestCol = -1;
+    var bestscore;
+    
+    if (won(1, game) || won(0, game) || gameover(game) || depth >= 0) {
+        bestscore = score(game, depth);
+    } else {
+        if (player == "computer") {
+            bestscore = -Infinity;
+            
+            for (var i = 0; i < moves.length; i++) {
+                var col = moves[i];
+                var grid = [];
+                for (var m = 0; m < game.length; m++) {
+                    grid[m] = [];
+                    for (var j = 0; j < game[0].length; j++) {
+                        grid[m][j] = game[m][j];
+                    }
+                }
+                
+                // Insert it at the top of the stack
+                for (var i = grid.length-1; i > 0; i--) {
+                    if (grid[i][col] == 3) {
+                        grid[i][col] = 1;
+                        break;
+                    }
+                }
+                
+                if (!contains(grid, prev)) {
+                    
+                    
+                    prev.push(grid);
+                    currScore = minmax(grid, depth+1, "opponent", prev)[0];
+                    if (currScore > bestscore) {
+                        bestscore = currScore;
+                        bestCol = col;
+                    }
+                }
+            }
+        } else {
+            bestscore = Infinity;
+            
+            for (var i = 0; i < moves.length; i++) {
+                var col = moves[i];
+                var grid = [];
+                for (var m = 0; m < game.length; m++) {
+                    grid[m] = [];
+                    for (var j = 0; j < game[0].length; j++) {
+                        grid[m][j] = game[m][j];
+                    }
+                }
+                
+                // Insert it at the top of the stack
+                for (var i = grid.length - 1; i > 0; i--) {
+                    if (grid[i][col] == 3) {
+                        grid[i][col] = 0;
+                        break;
+                    }
+                }
+                
+                if (!contains(grid, prev)) {
+                    
+                    
+                    prev.push(grid);
+                    
+                    currScore = minmax(grid, depth+1, "computer", prev)[0];
+                    if (currScore < bestscore) {
+                        bestscore = currScore;
+                        bestCol = col;
+                    }
+                }
+            }
+        }
+    }
+    var ret = [bestscore, bestCol];
+    //console.log(ret);
+    return ret;
+}
+
+function get_available_moves(game, prev, player) {
+    var moves = [];
+    for (var i = 0; i < game[0].length; i++) {
+        var grid = [];
+        
+        for (var m = 0; m < game.length; m++) {
+            grid[m] = [];
+            for (var j = 0; j < game[0].length; j++) {
+                grid[m][j] = game[m][j];
+            }
+        }
+        
+        for (var j = 0; j < grid.length; j++) {
+            if (j == grid.length-1) {
+                // Last move
+                grid[j][i] = player;
+                break;
+            } else if (grid[j+1][i] != 3 && grid[j][i] == 3) {
+                grid[j][i] = player;
+                break;
+            }
+        }
+        
+        //console.log(j, i, game.length, game[0].length, player);
+    
+        // If it's a repeat move, don't add it as a possible move
+        if (!contains(grid, prev)) {
+            moves.push(i);
+        }
+    }
+    //console.log(moves);
+    return moves;
+}
+    
+function score(game, depth) {
+    if (won(0, game)) { // opponent won
+        return depth-100;
+    } else if (won(1, game)) { // I won
+        return 100-depth;
+    } else {
+        return 0;
+    }
+}
+function printGrid() {
+    for (var i = 0; i < a.length; i++) {
+        for (var j = 0; j < a[0].length; j++) {
+            
+            if (a[i][j] == 0) {
+                //document.getElementById(i+"-"+j).innerHTML = "X";
+                document.getElementById(i+"-"+j).style.backgroundColor = "red";
+            } else if (a[i][j] == 1) {
+                //document.getElementById(i+"-"+j).innerHTML = "O";
+                document.getElementById(i+"-"+j).style.backgroundColor = "green";
+            } else {
+                //document.getElementById(i+"-"+j).innerHTML = "-";
+            }
+        }
+    }
+}
+function createArr() {
+    var rows = 6;
+    var cols = 7;
+    
+    var arr = [];
+
+    for (var i=0; i <= rows; i++) {
+        arr[i] = [];
+        for (var j = 0; j <= cols; j++) {
+            arr[i][j] = 3;
+        }
+    }
+
+    return arr;
+}
+
+function gameover(game) {
+    for (var i = 0; i < game.length; i++) {
+        if (game[i][game[0].length] != 3) {
+            return false;
+        }
+    }
+    return true;
+}
+function won(val) {
+    for (var i = 0; i < a.length; i++) {
+        for (var j = 0; j < a[0].length; j++) {
+            if (a[i][j] == 3) {
+                continue;
+            }
+
+            if (up(val,i,j) || right(val,i,j) || rightup(val,i,j) || leftup(val,i,j)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+function up(val, i,j) {
+    result = true;
+    for (var m = 0; m < 4; m++) {
+        if ((i-m) < 0 || j < 0 || (i-m) > a.length-1 || j > a[0].length-1) {
+            return false;
+        }
+        if (a[i-m][j] == 3) {
+            result = false;
+        }
+        result = result && (a[i-m][j] == val);
+    }
+    return result;
+}
+function right(val, i, j) {
+    result = true;
+    for (var m = 0; m < 4; m++) {
+        if (i < 0 || (j+m) < 0 || i > a.length-1 || (j+m) > a[0].length-1) {
+            return false;
+        }
+        if (a[i][j+m] == 3 || val == 3) {
+            result = false;
+        }
+        result = result && (a[i][j+m] == val);
+    }
+    return result;
+}
+function rightup(val, i,j) {
+    result = true;
+    for (var m = 0; m < 4; m++) {
+        if ((i+m) < 0 || (j+m) < 0 || (i+m) > a.length-1 || (j+m) > a[0].length-1) {
+            return false;
+        }
+        
+        if (a[i+m][j+m] == 3) {
+            result = false;
+        }
+        result = result && (a[i+m][j+m] == val);
+    }
+    return result;
+}
+function leftup(val, i,j) {
+    result = true;
+    for (var m = 0; m < 4; m++) {
+        if ((i-m) < 0 || (j+m) < 0 || (i-m) > a[0].length-1 || (j+m) > a[0].length-1) {
+            return false;
+        }
+        if (a[i-m][j+m] == 3) {
+            result = false;
+        }
+        result = result && (a[i-m][j+m] == val);
+    }
+    return result;
+}
+
+    
+function contains(needle, search) {
+    var result = false;
+    for (var m = 0; m < search.length; m++) {
+        var check = true;
+        
+        for (var i = 0; i < needle.length; i++) {
+            for (var j = 0; j < needle[0].length; j++) {
+                check = check && (needle[i][j] == search[m][i][j]);
+            }
+        }
+        result = result || check;
+    }
+    return result;
+}
+</script>
+
+<style>
+div {
+    border: 1px black solid;
+    margin: 1px;
+    height: 22px;
+    width: 22px;
+    display: inline-block;
+}
+</style>
+</html>

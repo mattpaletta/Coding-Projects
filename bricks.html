@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Block Breaker Game</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0, user-scalable=no"/>
+    <link href="materialize/css/materialize.css" type="text/css" rel="stylesheet" media="screen,projection"/>
+    <script src="https://code.jquery.com/jquery-2.1.1.min.js"></script>
+    <script src="materialize/js/materialize.js"></script>
+    <style>
+    	* { padding: 0; margin: 0; }
+    	canvas { background: #eee; display: block; margin: 0 auto; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <input type="text" placeholder="Name" id="name"><button onclick="init()" class="btn blue">Start Game</button>    
+
+    <div id="gameboard" style="display:none;">
+        <canvas id="myCanvas" width="480" height="320"></canvas>
+        <div id="message"></div>
+        <div id="highscore"></div>
+        <button onclick="init()" class="btn blue">Play Again</button>
+    </div>
+    <!--
+    <div id="stats">
+        <span id="level"></span><br>
+        <span id="levelColour"></span><br>
+        <span id="net"></span><br>
+        <span id="timernet"></span><br>
+        <span id="numballs"></span><br>
+        <span id="timerBallsNum"></span><br>
+        <span id="teleport"></span><br>
+        <span id="telex"></span><br>
+        <span id="teley"></span><br>
+        <span id="numpaddles"></span><br>
+        <span id="timerPaddles"></span><br>
+        <span id="ballRadius"></span><br>
+        <span id="timerBallSize"></span><br>
+        <span id="ballSpeed"></span><br>
+        <span id="ballSpeedTimer"></span><br>
+        <span id="doubleScoreTimer"></span><br>
+        <span id="ghostball"></span><br>
+        <span id="ghostballTimer"></span><br>
+        <span id="name"></span><br>
+        <span id="highscore"></span><br>
+        <span id="hname"></span><br>
+    </div>-->
+</div>
+
+
+<script>
+    // Level 1
+    
+    // Speed of ball, speed of paddle, number of bricks, size of bricks, size of the board, diagonal collisions, ghost ball
+    
+    // Highscore
+    
+    // Powerups:
+        // Net, Second Ball, Randomize The Colours, Teleportation, Second Paddle, Change size of Ball, Double Score
+    
+    // Level 2
+    
+    var level = 1;
+    var levelColour = "#0095DD";
+    
+    var net = [];
+    var timernet = 0;
+    
+    var timerBallsNum = 0;
+    
+    var teleport = false;
+    var telex = -1;
+    var teley = -1;
+    
+    var numpaddles = 1;
+    var secondPaddleTimer = 0;
+    
+    var ballRadius = 10;
+    var timerBallSize = 0;
+    var ballSpeed = 2.5;
+    var ballSpeedTimer = 0;
+    
+    var doubleScoreTimer = 0;
+    
+    var ghostball = false;
+    var ghostballTimer = 0;
+    
+	var canvas = document.getElementById("myCanvas");
+    var ctx = canvas.getContext("2d");
+    
+    // Canvas
+    var x = canvas.width/2;
+    var y = canvas.height-30;
+    
+    // Ball
+    var dx = ballSpeed;
+    var dy = -ballSpeed;
+    if (Math.floor(Math.random() * 10) + 1 > 5) {
+        dx = -ballSpeed;
+    } else {
+        dx = ballSpeed;
+    }
+    var balls = [];
+    
+    
+    // Paddle
+    var paddleHeight = 10;
+    var paddleWidth = 75;
+    var paddleX = (canvas.width-paddleWidth)/2;
+    var paddleSpeedTimer = 0;
+    
+    // Keys
+    var rightPressed = false;
+    var leftPressed = false;
+    
+    
+    // Bricks
+    var brickRowCount = 6;
+    var brickColumnCount = 5;
+    var brickWidth = 75;
+    var brickHeight = 20;
+    var brickPadding = 10;
+    var brickOffsetTop = 30;
+    var brickOffsetLeft = 30;
+    var bricks = [];
+    
+    
+    
+    // Powerups
+    var powerups = ["net", "ballSize", "ballNum", "ballSpeed", "ghostBall", "teleportation", "doubleScore", "secondPaddle"];
+    
+    // Score
+    var score = 0;
+    var scorel = 0;
+    
+    // Player
+    var name = "";
+    var highscore = 0;
+    var hname = "";
+
+    var drawGame;
+    
+    function init() {
+        if(typeof(Storage) !== "undefined") {
+            // Code for localStorage/sessionStorage.
+            hname = localStorage.getItem("hname");
+            highscore = localStorage.getItem("highscore");
+        } else {
+            // Sorry! No Web Storage support..
+            hame = "";
+            highscore = 0;
+        }
+        
+        //printStats();
+        
+        
+        name = document.getElementById("name").value;
+        if (name== "") {
+            alert("You must enter a name first!");
+            return;
+        }
+        
+        document.getElementById("gameboard").style.display = "block";
+        
+        alert("Ready " + name + "?");
+        level = 1;
+        score = 0;
+        initlevel(level);
+    }
+    
+    function initlevel(l) {
+        if (l != 1) {
+            clearInterval(drawGame);
+        }
+        
+        level = l;
+        scorel = 0;
+        
+        // Reset Ball & Paddle Position
+        balls = [];
+        createball();
+
+        paddleX = (canvas.width-paddleWidth)/2;
+        
+        if (level == 1) {
+            brickRowCount = 1;
+            levelColour = "#0095DD";
+            timernet = 0;
+            timerBallsNum = 0;
+            secondPaddleTimer = 0;
+            timerBallSize = 0;
+            ballSpeedTimer = 0;
+            ghostballTimer = 0;
+            doubleScoreTimer = 0;
+            paddleSpeedTimer = 0;
+        } else if (level == 2) {
+            brickRowCount = 2;
+            levelColour = "#504A4B";
+        } else if (level == 3) {
+            brickRowCount = 3;
+            levelColour = "#728C00";
+        } else if (level == 4) {
+            brickRowCount = 4;
+            levelColour = "#FDD017";
+        } else if (level == 5) {
+            brickRowCount = 5;
+            levelColour = "#FF2400";
+        } else if (level == 6) {
+            brickRowCount = 6;
+            levelColour = "#810541";
+        } else if (level > 6) {
+            endgame(true);
+            return;
+        }
+        
+        initbricks();
+        
+        leftPressed = false;
+        rightPressed = false;
+        message("");
+        drawGame = setInterval(draw, 10);
+    }
+    
+    function initbricks() {
+        bricks = [];
+        for(c=0; c<brickColumnCount; c++) {
+            bricks[c] = [];
+            for (r=0; r<brickRowCount; r++) {
+                bricks[c][r] = {x: 0, y: 0, status: 1, powerup: ""};
+            }
+        }
+        
+        //console.log(bricks);
+        
+        // Make the bricks with powerups the same as level number
+        
+        for (var i = 0; i < level; i++) {
+            var c = Math.round(Math.random() * (brickColumnCount-1));
+            var r = Math.round(Math.random() * (brickRowCount-1));
+                        
+            while (bricks[c][r].powerup == "") {
+                break;
+                c = c = Math.round(Math.random() * (brickColumnCount-1));
+                r = r = Math.round(Math.random() * (brickRowCount-1));
+            }
+            
+            var p = Math.round(Math.random() * (powerups.length-1));
+            console.log(powerups[p]);
+            bricks[c][r].powerup = powerups[p];
+        }
+    }
+       
+    function drawScore() {
+        ctx.font = "16px Arial";
+        ctx.fillStyle = levelColour;
+        ctx.fillText("Score: "+score, 8, 20);
+        document.getElementById("highscore").innerHTML = "Highscore: " + highscore + " by " + hname;
+    }
+    
+    function collisionDetection() {
+        for(c=0; c<brickColumnCount; c++) {
+            for(r=0; r<brickRowCount; r++) {
+                var b = bricks[c][r];
+                if(b.status >= 1) {
+                    
+                    for (var i = 0; i < balls.length; i++) {
+                        if(balls[i]["x"] > b.x && balls[i]["x"] < b.x+brickWidth && balls[i]["y"] > b.y && balls[i]["y"] < b.y+brickHeight) {
+                            if (!balls[i]["ballPower"].ghostBall) {
+                                balls[i]["dy"] = -balls[i]["dy"];
+                            }
+                            b.status--;
+                            
+                            if (b.powerup != "") {
+                                console.log(b.powerup + " ACTIVATED");
+                            }
+                            
+                            managepowerups(b.powerup, balls[i]);
+
+                            score++;
+                            scorel++;
+                            if (doubleScoreTimer > 0) {
+                                score *= 2;
+                            }
+
+
+                            if (scorel >= brickRowCount*brickColumnCount) {
+                                endlevel("YOU WIN, CONGRATULATIONS!");
+                            }
+                        }
+                        
+                        // Check if it hit the net
+                        for (var m = 0; m < net.length; m++) {
+                            if ((
+                                    balls[i].dy > 0 &&
+                                    ((net[m].x + net[m].l > balls[i].x + balls[i].ballRadius &&
+                                    balls[i].x + balls[i].ballRadius > net[m].x) ||
+                                    (net[m].x + net[m].l > balls[i].x - balls[i].ballRadius &&
+                                    balls[i].x - balls[i].ballRadius > net[m].x)
+                                    ) && 
+                                    balls[i].y + balls[i].ballRadius > net[m].y &&
+                                    net[m].y > balls[i].y
+                            )) {
+                                balls[i]["dy"] = -balls[i]["dy"];
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    function endlevel(str) {
+        message(str);
+        alert("Ready to begin level " + (level+1));
+        initlevel(level+1);
+    }
+    
+    function endgame(b) {
+        if (b) {
+            alert("You beat the game! Well Done " + name + "!");
+        } else {
+            // Didn't Win.
+            alert("You lost the game.  Your score was: " + score + "!");
+        }
+        
+        if (score > highscore) {
+            localStorage.setItem("hname", name);
+            localStorage.setItem("highscore", score);
+            
+            alert("Congradulations! You have set a new high score of " + score);
+        }
+        drawScore();
+        clearInterval(drawGame);
+        
+        return;
+    }
+    
+    function drawBricks() {
+        var total = 0;
+        for(c=0; c<brickColumnCount; c++) {
+            for(r=0; r<brickRowCount; r++) {
+                
+                if (bricks[c][r].status >= 1) {
+                    var brickX = (c*(brickWidth+brickPadding))+brickOffsetLeft;
+                    var brickY = (r*(brickHeight+brickPadding))+brickOffsetTop;
+                    bricks[c][r].x = brickX;
+                    bricks[c][r].y = brickY;
+                    ctx.beginPath();
+                    ctx.rect(brickX, brickY, brickWidth, brickHeight);
+                    if (bricks[c][r].powerup == "") {
+                        ctx.fillStyle = levelColour;
+                    } else {
+                        ctx.fillStyle = "black";
+                    }
+                    ctx.fill();
+                    ctx.closePath();
+                }
+                total += bricks[c][r].status;
+            }
+        }
+        
+        if (total == 0) {
+            endlevel("YOU WIN, CONGRATULATIONS!");
+        }
+    }
+    
+    function drawBall() {
+        for (var i = 0; i < balls.length; i++) {
+            ctx.beginPath();
+            ctx.arc(balls[i]["x"], balls[i]["y"], balls[i]["ballRadius"], 0, Math.PI*2);
+            if (balls[i]["ballPower"].ghostBall) {
+                ctx.strokeStyle = levelColour;
+                ctx.stroke();
+            } else {
+                ctx.fillStyle = levelColour;
+                ctx.fill();
+            }
+            ctx.closePath();
+        }
+    }
+    
+    function drawPaddle() {
+        ctx.beginPath();
+        ctx.rect(paddleX, canvas.height-paddleHeight, paddleWidth, paddleHeight);
+        ctx.fillStyle = levelColour;
+        ctx.fill();
+        ctx.closePath();
+        if (numpaddles > 1) {
+            ctx.beginPath();
+            ctx.rect(paddleX, 0, paddleWidth, paddleHeight);
+            ctx.fillStyle = levelColour;
+            ctx.fill();
+            ctx.closePath();
+        }
+    }
+    
+    function drawnet() {
+        for (var i = 0; i < net.length; i++) {
+            ctx.beginPath();
+            ctx.rect(net[i].x, net[i].y, net[i].l, 5);
+            ctx.fillStyle = "black";
+            ctx.fill();
+            ctx.closePath();
+        }
+    }
+    
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        //printStats();
+        managepowerups("None");
+        drawBall();
+        drawPaddle();
+        drawScore();
+        drawnet();
+        collisionDetection();
+        drawBricks();
+        timers();
+        
+        for (var i = 0; i < balls.length; i++) {
+            if (balls[i]["x"] + balls[i]["dx"] > canvas.width-balls[i]["ballRadius"] || balls[i]["x"] + balls[i]["dx"] < balls[i]["ballRadius"]) {
+                balls[i]["dx"] = -balls[i]["dx"];
+            }
+
+            if (balls[i]["y"] + balls[i]["dy"] < balls[i]["ballRadius"]) {
+                balls[i]["dy"] = -balls[i]["dy"];
+            } else if (balls[i]["y"] + balls[i]["dy"] > canvas.height-balls[i]["ballRadius"]) {
+                if (balls[i]["x"] > paddleX && balls[i]["x"] < paddleX + paddleWidth) {
+                    balls[i]["dy"] = -balls[i]["dy"];
+                }
+                else {
+                    endgame(false);
+                    return;
+                }
+            }
+
+            if (rightPressed && paddleX < canvas.width-paddleWidth) {
+                paddleX += 5;
+            }
+            else if (leftPressed && paddleX > 0) {
+                paddleX -= 5;
+            }
+
+            balls[i]["x"] += balls[i]["dx"];
+            balls[i]["y"] += balls[i]["dy"];
+        }
+    }
+    
+    
+    function keyDownHandler(e) {
+        if(e.keyCode == 39) {
+            rightPressed = true;
+        }
+        else if(e.keyCode == 37) {
+            leftPressed = true;
+        }
+    }
+    function keyUpHandler(e) {
+        if(e.keyCode == 39) {
+            rightPressed = false;
+        }
+        else if(e.keyCode == 37) {
+            leftPressed = false;
+        }
+    }
+    document.addEventListener("keydown", keyDownHandler, false);
+    document.addEventListener("keyup", keyUpHandler, false);
+    
+    function message(str) {
+        document.getElementById('message').innerHTML = str;
+    }
+    function reload() {
+        location.reload();
+    }
+    
+    
+    function managepowerups(power, ball) {
+        timerAmt = 2;
+        
+        if (power == "None") {
+            // Turn off Powerups
+            if (timerBallsNum == 0) {
+                while (balls.length > 1) {
+                    removeball();
+                }
+            }
+            
+            if (timernet == 0) {
+                net = [];
+            }
+            
+            if (ballSpeedTimer == 0) {
+                for (var i = 0; i < balls.length; i++) {
+                    while (balls[i]["ballPower"].ballSpeed > 0) {
+                        console.log(balls[i]["ballPower"].ballSpeed);
+                        balls[i]["ballPower"].ballSpeed--;
+                        balls[i]["dy"] /= 1.3;
+                        balls[i]["dx"] /= 1.3;
+                        console.log(ball.dx, ball.dy);
+                    }
+                }
+            }
+            
+            if (timerBallSize == 0) {
+                for (var i = 0; i < balls.length; i++) {
+                    balls[i]["ballRadius"] = ballRadius;
+                }
+            }
+            
+            if (ghostballTimer == 0) {
+                for (var i = 0; i < balls.length; i++) {
+                    balls[i]["ballPower"].ghostBall = false;
+                }
+            }
+            
+            if (secondPaddleTimer == 0) {
+                numpaddles = 1;
+            }
+            //telex = -1;
+            //teley = -1;
+            
+        } else {
+            // Turn on Powerup
+            
+            if (power == "net") {
+                
+                // There isn't a net in place yet, so make one.
+                if (net.length == 0) {
+                    var pieces = 16;
+                    var cw = canvas.width / pieces;
+                    
+                    for (var i = 0; i < pieces; i++) { // Go go through all  pieces, make 50/50 for net there.
+                        
+                        if (Math.floor(Math.random() * 10) + 1 > 5) {
+                            // Turn on net
+                            var n = {x: cw*i, y: canvas.height * (4/5),l: cw};
+                            net.push(n);
+                        }
+                    }
+                }
+                message("Net Activated");
+                
+                timernet += timerAmt;
+            }
+            
+            if (power == "ballSize") {
+                ball["ballRadius"] = ballRadius * 2;
+                timerBallSize += timerAmt;
+                message("Ball Size Activated");
+            }
+            
+            if (power == "ballNum") {
+                createball();
+                timerBallsNum += timerAmt;
+                message("Number Of Balls Activated");
+            }
+            
+            if (power == "ballSpeed") {
+                console.log(ball.dx, ball.dy);
+                var power = ball["ballPower"];
+                if (power.ballSpeed == undefined) {
+                    // Haven't increased speed of ball before
+                    ball["ballPower"]["ballSpeed"] = 1;
+                } else {
+                    ball["ballPower"].ballSpeed += 1;
+                }
+                ball["dy"] = ball["dy"] * 1.3;
+                ball["dx"] = ball["dx"] * 1.3;
+                console.log(ball.dx, ball.dy);
+                ballSpeedTimer += timerAmt;
+                message("Ball Speed Activated");
+            }
+            
+            if (power == "ghostBall") {
+                for (var i = 0; i < balls.length; i++) {
+                    var power = balls[i]["ballPower"];
+                    if (power.ballSpeed == undefined) {
+                        balls[i]["ballPower"]["ghostBall"] = true;
+                    } else {
+                        balls[i]["ballPower"].ghostBall = true;
+                    }
+                }
+                ghostballTimer += timerAmt;
+                message("Ghostball Activated");
+            }
+            
+            if (power == "teleportation") {
+                var angle = Math.random() * Math.PI * 2;
+                teley = ball.y + 70 * Math.sin(angle);
+                telex = ball.x + 70 * Math.cos(angle);
+                                
+                // Is it a valid teleportation place?
+                while (!(telex + ball.ballRadius < canvas.width && 
+                       telex - ball.ballRadius > 0 &&
+                       teley + ball.ballRadius < canvas.height &&
+                       teley - ball.ballRadius > 0
+                        )) {
+                    angle = Math.random() * Math.PI * 2;
+                    teley = ball.y + 70 * Math.sin(angle);
+                    telex = ball.x + 70 * Math.cos(angle);
+                }
+                
+                ball.y = teley;
+                ball.x = telex;
+                message("Teleportation Activated");
+            }
+            
+            if (power == "doubleScore") {
+                doubleScoreTimer += timerAmt;
+                message("Double Score Activated");
+            }
+            
+            if (power == "secondPaddle") {
+                secondPaddleTimer += timerAmt;
+                numpaddles = 2;
+                message("Second Paddle Activated");
+            }
+        }
+    }
+    
+    function timers() {
+        var amount = 0.001;
+        
+        // Decrease the timers for all active powerups
+        if (timernet > 0) {
+            timernet -= amount;
+        } else {
+            timernet = 0;
+        }
+        
+        if (timerBallsNum > 0) {
+            timerBallsNum -= amount;
+        } else {
+            timerBallsNum = 0;
+        }
+        
+        if (secondPaddleTimer > 0) {
+            secondPaddleTimer -= amount;
+        } else {
+            secondPaddleTimer = 0;
+        }
+        
+        if (timerBallSize > 0) {
+            timerBallSize -= amount;
+        } else {
+            timerBallSize = 0;
+        }
+        
+        if (ballSpeedTimer > 0) {
+            ballSpeedTimer -= amount;
+        } else {
+            ballSpeedTimer = 0;
+        }
+        
+        if (ghostballTimer > 0) {
+            ghostballTimer -= amount;
+        } else {
+            ghostballTimer = 0;
+        }
+        
+        if (doubleScoreTimer > 0) {
+            doubleScoreTimer -= amount;
+        } else {
+            doubleScoreTimer = 0;
+        }
+        
+        if (paddleSpeedTimer > 0) {
+            paddleSpeedTimer -= amount;
+        } else {
+            paddleSpeedTimer = 0;
+        }
+        
+    }
+    
+    function printStats() {
+        document.getElementById("level").innerHTML = "Level: " + level;
+        document.getElementById("levelColour").innerHTML = "Level Colour: " + levelColour;
+        document.getElementById("net").innerHTML = "Net: " + net;
+        document.getElementById("timernet").innerHTML = "Timer Net: " + timernet;
+        document.getElementById("numballs").innerHTML = "Num Balls: " + balls.length;
+        document.getElementById("timerBallsNum").innerHTML = "Timer Ball Num: " + timerBallsNum;
+        document.getElementById("teleport").innerHTML = "Teleport: " + teleport;
+        document.getElementById("telex").innerHTML = "Teleport X: " + telex;
+        document.getElementById("teley").innerHTML = "Teleport Y: " + teley;
+        document.getElementById("numpaddles").innerHTML = "Num Paddles: " + numpaddles;
+        document.getElementById("timerPaddles").innerHTML = "Timer Paddles: " + secondPaddleTimer;
+        document.getElementById("ballRadius").innerHTML = "Ball Radius: " + ballRadius;
+        document.getElementById("timerBallSize").innerHTML = "Timer Ball Size: " + timerBallSize;
+        document.getElementById("ballSpeed").innerHTML = "Ball Speed: " + ballSpeed;
+        document.getElementById("ballSpeedTimer").innerHTML = "Ball Speed Timer: " + ballSpeedTimer;
+        document.getElementById("doubleScoreTimer").innerHTML = "Double Score Timer: " + doubleScoreTimer;
+        document.getElementById("ghostball").innerHTML = "Ghost Ball: " + ghostball;
+        document.getElementById("ghostballTimer").innerHTML = "Ghost Ball Timer: " + ghostballTimer;
+        document.getElementById("name").innerHTML = "Name: " + name;
+        document.getElementById("highscore").innerHTML = "Highscore: " + highscore;
+        document.getElementById("hname").innerHTML = "Highscore Name: " + hname;
+    }
+    
+    function createball() {
+        var ang = 0;
+        
+        if (Math.floor(Math.random() * 10) + 1 > 5) {
+            //pi/6 - pi/3
+            ang = Math.PI/6 + Math.random() * (Math.PI/6);
+        } else {
+            // 2pi/3 - 5pi/6
+            ang = (2 * Math.PI)/3 + Math.random() * (Math.PI/6);
+        }
+        
+        console.log(Math.PI/6);
+        console.log(ang);
+        
+        var amty = dy * Math.sin(ang);
+        var amtx = dx * -Math.cos(ang);
+        
+        balls.push(
+            {"x": x, "y": y, "dy": amty, "dx": amtx, "ballRadius": ballRadius, "ballPower": {}}
+        );
+        
+        console.log("Ball Added");
+        console.log({"x": x, "y": y, "dy": dy, "dx": dx, "ballRadius": ballRadius});
+    }
+    function removeball() {
+        balls.pop();
+        console.log("Ball Removed");
+    }
+</script>
+
+</body>
+</html>

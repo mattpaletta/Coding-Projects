@@ -1,0 +1,238 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0, user-scalable=no"/>
+<title>Tic Tac Toe</title>
+</head>
+<body></body>
+    
+
+
+<script>
+init();
+    
+function init() {
+    for (var i = 0; i < 3; i++) {
+        for (var j = 0; j < 3; j++) {
+            document.body.innerHTML += "<input type='button' id='"+i+"-"+j+"' value='-' onclick='makemove.call(this,event)'>";
+        }
+        document.body.innerHTML += "<br>";
+    }
+}
+
+function makemove(event) {
+    var a = [
+        [0, 0, 0],
+        [0, 0, 0],
+        [0, 0, 0]
+    ];
+    if (this.value != "-") {
+        alert("Illegal Move!");
+        return;
+    }
+
+    event.preventDefault();
+    this.value = "O";
+
+
+    for (var i = 0; i < a.length; i++) {
+        for (var j = 0; j < a[0].length; j++) {
+            if (document.getElementById(i+"-"+j).value == "-") {
+                a[i][j] = 0; // free square
+            } else if (document.getElementById(i+"-"+j).value == "O"){
+                a[i][j] = 1; // opponent 
+            } else if (document.getElementById(i+"-"+j).value == "X") {
+                a[i][j] = 2; // my move
+            }
+        }
+    }
+
+    if (gameover(a)) {
+        endgame(a);
+        return;
+    }
+
+    var result = move(a, 0, "computer");
+    document.getElementById(result[0]+"-"+result[1]).value = "X";
+
+
+    if (gameover(a)) {
+        endgame(a);
+        return;
+    }
+}
+
+function endgame(game) {
+    if (won(1, game)) {
+        alert("Player 1 Won!");
+    } else if (won(2, game)) {
+        alert("The Computer Won!");
+    } else {
+        alert("The Game Ended In A Draw!");
+    }
+    document.body.innerHTML = "";
+    init();
+}
+    
+
+function move(game) {
+    var result = minmax(game, 0, "computer");
+    console.log(result);
+    
+    return [result[1], result[2]]; // row, col
+}
+
+function minmax(game, depth, player) {
+    var moves = get_available_moves(game);
+    var currScore;
+    var bestRow = -1;
+    var bestCol = -1;
+    var bestscore;
+    
+    if (won(1, game, false) != 0 || won(2, game, false) != 0 || gameover(game)) {
+        bestscore = score(game, depth);
+    } else {
+        if (player == "computer") {
+            bestscore = -Infinity;
+
+            for (var i = 0; i < moves.length; i++) {
+                var row = moves[i][0];
+                var col = moves[i][1];
+                game[row][col] = 2;
+                currScore = minmax(game, depth+1, "opponent")[0];
+                if (currScore > bestscore) {
+                    bestscore = currScore;
+                    bestRow = row;
+                    bestCol = col;
+                }
+                game[row][col] = 0;
+            }
+        } else { // player is opponenent
+            bestscore = Infinity;
+            for (var i = 0; i < moves.length; i++) {
+                var row = moves[i][0];
+                var col = moves[i][1];
+                game[row][col] = 1;
+                
+                currScore = minmax(game, depth+1, "computer")[0];
+                if (currScore < bestscore) {
+                    bestscore = currScore;
+                    bestRow = moves[i][0];
+                    bestCol = moves[i][1];
+                }
+                game[row][col] = 0;
+            }
+        }
+    }
+    var ret = [bestscore, bestRow, bestCol];
+    return ret;
+}
+
+function get_available_moves(grid) {
+    if (won(2, grid, false) || won(1, grid, false)) {
+        return [];
+    }
+    
+    var moves = [];
+    for (var i = 0; i < grid.length; i++) {
+        for (var j = 0; j < grid[0].length; j++) {
+            if (grid[i][j] == 0) {
+                var ret = [i,j];
+                moves.push(ret);
+            }
+        }
+    }
+    return moves;
+}
+
+function gameover(game) {
+    for (var i = 0; i < game.length; i++) {
+        for (var j = 0; j < game[0].length; j++) {
+            if (game[i][j] == 0) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+    
+
+function score(game, depth) {
+    if (won(1, game, false)) { // Opponent Won
+        return depth-100;
+    } else if (won(2, game, false)) { // I won
+        return 100-depth;
+    } else {
+        return 0;
+    }
+}
+    
+function won(val, arr, B) {
+    if (B) {
+        //console.log(checkCol(val, arr), checkRow(val, arr), diag(val, arr), diag2(val, arr));
+    }
+        
+    return checkCol(val, arr) || checkRow(val, arr) || diag(val, arr) || diag2(val, arr);
+}
+    
+function checkCol(val, arr) {
+    for (var i = 0; i < arr.length; i++) {
+        var check = true;
+        for (var j = 0; j < arr[0].length; j++) {
+            if (arr[j][i] != val) {
+                check = false;
+            }
+        }
+        if (check == true) {
+            return true;
+        }
+    }
+    return false;
+}
+    
+function checkRow(val, arr) {
+    for (var i = 0; i < arr.length; i++) {
+        var check = true;
+        for (var j = 0; j < arr[0].length; j++) {
+            if (arr[i][j] != val) {
+                check = false;
+            }
+        }
+        if (check == true) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function diag(val, arr) {
+    for (var i = 0; i < arr.length; i++) {
+        if (arr[i][i] != val) {
+            return false;
+        }
+    }
+    return true;
+}
+    
+function diag2(val, arr) {
+    for (var i = 0; i < arr.length; i++) {
+        if (arr[arr.length - i-1][i] != val) {
+            return false;
+        }
+    }
+    return true;
+}
+    
+function createArr(rows) {
+    var arr = [];
+
+    for (var i=0;i < rows; i++) {
+        arr[i] = [];
+    }
+
+    return arr;
+}
+
+</script> 
+
+</html>

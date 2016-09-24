@@ -1,0 +1,188 @@
+<html>
+<head>
+<title>Sudoku Solver</title>
+</head>
+
+<body>
+    
+</body>
+<input type="button" onclick="solve();" value="SOLVE"><br>
+<style>
+input[type="number"] {
+    width: 50px;
+}
+</style>
+<script>
+
+var a =[
+    [0,0,0, 0,0,0, 0,0,0],
+    [0,0,0, 0,0,0, 0,0,0],
+    [0,0,0, 0,0,0, 0,0,0],
+    
+    [0,0,0, 0,0,0, 0,0,0],
+    [0,0,0, 0,0,0, 0,0,0],
+    [0,0,0, 0,0,0, 0,0,0],
+    
+    [0,0,0, 0,0,0, 0,0,0],
+    [0,0,0, 0,0,0, 0,0,0],
+    [0,0,0, 0,0,0, 0,0,0]
+];
+
+init();
+    
+createPuzzle();
+    
+function init() {
+    for (var i = 0; i < 9; i++) {
+        for (var j = 0; j < 9; j++) {
+ 
+            document.body.innerHTML += "<input type='number' id='"+i+"-"+j+"'>";
+            
+            if (j % 3 == 2) {
+                document.body.innerHTML += " | ";
+            }
+        }
+        if (i % 3 == 2) {
+            document.body.innerHTML += "<hr>";
+        } else {
+            document.body.innerHTML += "<br>";
+        }
+    }
+}
+    
+function createPuzzle() {
+    
+    for (var i = 0; i < a.length; i++) {
+        for (var j = 0; j < a[0].length; j++) {
+            if (document.getElementById(i+"-"+j).value == "") {
+                a[i][j] = 0;
+            } else {
+                a[i][j] = document.getElementById(i+"-"+j).value;
+            }
+            
+        }
+    }
+
+}
+    
+function solve() {
+    createPuzzle();
+    
+    //solvepuzzle(0,0, a);
+    solvepuzzle2(a);
+    printPuzzle(a);
+    alert("DONE SOLVING PUZZLE!!")
+}
+
+function solvepuzzle(row, col, a) {
+    if (row > 8) {
+        return;
+    }
+    
+    if (a[row][col] != 0) {
+        if(col < 8) {
+            solvepuzzle(row, col + 1);
+        } else {
+            solvepuzzle(row + 1, 0);
+        }
+    } else {
+        for (var num = 1; num < 10; num++) {
+            if (legalsquare(num, col, row)) {
+                a[row][col] = num;
+                if (col < 8) {
+                    solvepuzzle(row, col + 1);
+                } else {
+                    solvepuzzle(row + 1, 0);
+                }
+            }
+        }
+    }
+}
+
+    
+function solvepuzzle2(arr) {
+    for (var i = 0; i < arr.length; i++) {
+        for (var j = 0; j < arr[0].length; j++) {
+            if (arr[i][j] != 0) {
+                continue;
+            }
+            for (var num = 1; num <= arr.length; num++) {
+                if (legalsquare(num, i, j, arr)) {
+                    arr[i][j] = num;
+                    if (solvepuzzle2(arr)) {
+                        return true;
+                    } else {
+                        arr[i][j] = 0;
+                    }
+                }
+            }
+            return false;
+        }
+    }
+    return true;
+}
+    
+function legalsquare(vl, cols, rows, arr) {
+    return checkSquare(vl, cols, rows, arr) && checkRow(vl, rows, arr) && checkCol(vl, cols, arr);
+} 
+    
+function checkSquare(vl, cols, rows, arr) {
+    var col, row;
+    col = Math.floor(cols/3) * 3;
+    row = Math.floor(rows/3) * 3;
+    
+    for (var i = col; i < (col+3); i++) {
+        for (var j = row; j < (row+3); j++) {
+            if (arr[i][j] == vl) {
+                return false;
+            }
+        }
+    }
+    return true;
+    
+}
+
+function checkRow(vl, rows, arr) {
+    for (var i = 0; i < arr.length; i++) {
+        if (arr[i][rows] == vl) {
+            return false;
+        }
+    }
+    return true;
+}
+
+function checkCol(vl, cols, arr) {
+    for (var i = 0; i < arr[0].length; i++) {
+        if (arr[cols][i] == vl) {
+            return false;
+        }
+    }
+    return true;
+}
+    
+function printPuzzle(arr) {
+    for(var i = 0; i < arr.length; i++) {
+        for (var j = 0; j < arr[0].length; j++) {
+            document.write(a[i][j]+ " ");
+            if(j % 3 == 2) {
+                document.write("  ");
+            }
+        }
+        document.write("<br>");
+        if (i % 3 == 2) {
+            document.write("<br>");
+        }
+    }
+}
+
+function Array2D(x, y) {
+    var array2D = new Array(x);
+
+    for (var i = 0; i < array2D.length; i++) {
+        array2D[i] = new Array(y);
+    }
+
+    return array2D;
+}
+</script>
+</html>
